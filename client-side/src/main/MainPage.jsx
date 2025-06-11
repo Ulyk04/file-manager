@@ -23,20 +23,64 @@ const NAVIGATION = [
 ];
 
 const demoTheme = createTheme({
-  cssVariables: {
-    colorSchemeSelector: 'data-toolpad-color-scheme',
-  },
-  colorSchemes: { light: true, dark: true },
-  breakpoints: {
-    values: {
-      xs: 0,
-      sm: 600,
-      md: 600,
-      lg: 1200,
-      xl: 1536,
+    cssVariables: {
+      colorSchemeSelector: 'data-toolpad-color-scheme',
     },
-  },
-});
+    colorSchemes: {
+      light: {
+        palette: {
+          primary: {
+            main: '#ffffff', 
+          },
+          secondary: {
+            main: '#ffffff', 
+          },
+          background: {
+            default: '#72ed93', 
+            paper: '#4fa165',  
+          },
+          text: {
+            primary: 'white',
+            secondary: '#ffffff', 
+          },
+          
+          custom: { 
+              mainBackground: '#ffffff', 
+          }
+        },
+      },
+      dark: {
+        palette: {
+          primary: {
+            main: '#90caf9', 
+          },
+          secondary: {
+            main: '#f48fb1', 
+          },
+          background: {
+            default: '#585870', 
+            paper: '#424242',   
+          },
+          text: {
+            primary: '#ffffff', 
+            secondary: '#bdbdbd', 
+          },
+           custom: { 
+              mainBackground: '#343a40', 
+          }
+        },
+      },
+    },
+    breakpoints: {
+      values: {
+        xs: 0,
+        sm: 600,
+        md: 600,
+        lg: 1200,
+        xl: 1536,
+      },
+    },
+  });
 
 function DemoPageContent({ pathname }) {
   return (
@@ -63,13 +107,13 @@ function DashboardLayoutBranding(props) {
 
   const router = useDemoRouter('/dashboard');
 
-  // Remove this const when copying and pasting into your project.
+  
   const demoWindow = window !== undefined ? window() : undefined;
 
   return (
-    // Remove this provider when copying and pasting into your project.
+    
     <DemoProvider window={demoWindow}>
-      {/* preview-start */}
+      
       <AppProvider
         navigation={NAVIGATION}
         branding={{
@@ -85,16 +129,12 @@ function DashboardLayoutBranding(props) {
           <DemoPageContent pathname={router.pathname} />
         </DashboardLayout>
       </AppProvider>
-      {/* preview-end */}
+    
     </DemoProvider>
   );
 }
 
 DashboardLayoutBranding.propTypes = {
-  /**
-   * Injected by the documentation to work in an iframe.
-   * Remove this when copying and pasting into your project.
-   */
   window: PropTypes.func,
 };
 
