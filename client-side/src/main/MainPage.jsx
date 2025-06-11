@@ -3,23 +3,39 @@ import PropTypes from 'prop-types';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { createTheme } from '@mui/material/styles';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import FolderIcon from '@mui/icons-material/Folder';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import ShareIcon from '@mui/icons-material/Share';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { DemoProvider, useDemoRouter } from '@toolpad/core/internal';
 
 const NAVIGATION = [
+    {
+        kind: 'header',
+        title: 'Navigation',
+    },
   {
-    segment: 'dashboard',
-    title: 'Dashboard',
-    icon: <DashboardIcon />,
+    segment: 'allfiles',
+    title: 'All Files',
+    icon: <FolderIcon />,
   },
   {
-    segment: 'orders',
-    title: 'Orders',
-    icon: <ShoppingCartIcon />,
+    segment: 'recent',
+    title: 'Recent',
+    icon: <ScheduleIcon />,
   },
+  {
+    segment: 'shared',
+    title: 'Shared',
+    icon: <ShareIcon />,
+  },
+  {
+    segment: 'trash',
+    title: 'Trash',
+    icon: <DeleteIcon />,
+  }
 ];
 
 const demoTheme = createTheme({
