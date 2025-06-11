@@ -30,18 +30,18 @@ const demoTheme = createTheme({
       light: {
         palette: {
           primary: {
-            main: '#ffffff', 
+            main: '#000000', 
           },
           secondary: {
             main: '#ffffff', 
           },
           background: {
-            default: '#72ed93', 
-            paper: '#4fa165',  
+            default: '#ffffff', 
+            paper: '#ffffff',  
           },
           text: {
-            primary: 'white',
-            secondary: '#ffffff', 
+            primary: 'black',
+            secondary: 'black', 
           },
           
           custom: { 
@@ -52,18 +52,18 @@ const demoTheme = createTheme({
       dark: {
         palette: {
           primary: {
-            main: '#90caf9', 
+            main: '#ffffff', 
           },
           secondary: {
-            main: '#f48fb1', 
+            main: '#000000', 
           },
           background: {
-            default: '#585870', 
-            paper: '#424242',   
+            default: '#00000', 
+            paper: '#000000',   
           },
           text: {
             primary: '#ffffff', 
-            secondary: '#bdbdbd', 
+            secondary: '#00000', 
           },
            custom: { 
               mainBackground: '#343a40', 
