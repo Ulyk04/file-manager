@@ -10,6 +10,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { DemoProvider, useDemoRouter } from '@toolpad/core/internal';
+import { Button, Stack } from '@mui/material';
 
 const NAVIGATION = [
     {
@@ -118,6 +119,21 @@ DemoPageContent.propTypes = {
   pathname: PropTypes.string.isRequired,
 };
 
+function ToolbarActions(){
+  return(
+    <Stack direction={'row'} >
+        <div>
+           <Button variant='contained' >
+              Upload
+           </Button>
+           <Button>
+              New Folder
+           </Button>
+        </div>
+    </Stack>
+  )
+}
+
 function DashboardLayoutBranding(props) {
   const { window } = props;
 
@@ -141,7 +157,11 @@ function DashboardLayoutBranding(props) {
         theme={demoTheme}
         window={demoWindow}
       >
-        <DashboardLayout>
+        <DashboardLayout
+          slots={{
+            toolbarAccount: ToolbarActions,
+          }}
+        >
           <DemoPageContent pathname={router.pathname} />
         </DashboardLayout>
       </AppProvider>
