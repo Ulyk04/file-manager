@@ -10,7 +10,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { DemoProvider, useDemoRouter } from '@toolpad/core/internal';
-import { Button, Stack } from '@mui/material';
+import { Button, Input, Stack } from '@mui/material';
 
 const NAVIGATION = [
     {
@@ -120,10 +120,32 @@ DemoPageContent.propTypes = {
 };
 
 function ToolbarActions(){
+
+  const fileInputRef = React.useRef(null); 
+
+    const handleUploadClick = () => {
+        fileInputRef.current.click(); 
+    };
+
+    const handleFileChange = (event) => {
+      const files = event.target.files;
+      if (files.length > 0) {
+          console.log("Selected files:", files);
+      }
+      event.target.value = null;
+  };
+
   return(
-    <Stack direction={'row'} >
+    <Stack direction={'row'} spacing={1} sx={{mr: 2}} >
+      <Input
+        type="file"
+        inputRef={fileInputRef}
+        onChange={handleFileChange}
+        sx={{ display: 'none' }}
+        multiple
+      />
         <div>
-           <Button variant='contained' >
+           <Button variant='contained' onClick={handleUploadClick} >
               Upload
            </Button>
            <Button>
