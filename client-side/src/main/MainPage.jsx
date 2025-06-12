@@ -10,7 +10,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { DemoProvider, useDemoRouter } from '@toolpad/core/internal';
-import { Button, Input, Stack } from '@mui/material';
+import { Button, Stack, Input, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+
 
 const NAVIGATION = [
     {
@@ -47,43 +48,43 @@ const demoTheme = createTheme({
       light: {
         palette: {
           primary: {
-            main: '#000000', 
+            main: '#000000',
           },
           secondary: {
-            main: '#ffffff', 
+            main: '#ffffff',
           },
           background: {
-            default: '#ffffff', 
-            paper: '#ffffff',  
+            default: '#ffffff',
+            paper: '#ffffff',
           },
           text: {
             primary: 'black',
-            secondary: 'black', 
+            secondary: 'black',
           },
-          
-          custom: { 
-              mainBackground: '#ffffff', 
+
+          custom: {
+              mainBackground: '#ffffff',
           }
         },
       },
       dark: {
         palette: {
           primary: {
-            main: '#ffffff', 
+            main: '#ffffff',
           },
           secondary: {
-            main: '#000000', 
+            main: '#000000',
           },
           background: {
-            default: '#00000', 
-            paper: '#000000',   
+            default: '#00000',
+            paper: '#000000',
           },
           text: {
-            primary: '#ffffff', 
-            secondary: '#00000', 
+            primary: '#ffffff',
+            secondary: '#00000',
           },
-           custom: { 
-              mainBackground: '#343a40', 
+           custom: {
+              mainBackground: '#343a40',
           }
         },
       },
@@ -119,55 +120,120 @@ DemoPageContent.propTypes = {
   pathname: PropTypes.string.isRequired,
 };
 
-function ToolbarActions(){
+function CreateNewFolderDialog({ open, onClose, onFolderCreated }) {
+    const [folderName, setFolderName] = React.useState('');
 
-  const fileInputRef = React.useRef(null); 
+    const handleCreate = () => {
+        if (folderName.trim()) {
+            console.log("Creating new folder:", folderName);
+           
+            onFolderCreated(folderName);
+            setFolderName(''); 
+            onClose(); 
+        } else {
+            alert('Folder name cannot be empty!');
+        }
+    };
+
+    return (
+        <Dialog open={open} onClose={onClose}>
+            <DialogTitle>Create New Folder</DialogTitle>
+            <DialogContent>
+                <TextField
+                    autoFocus
+                    margin="dense"
+                    id="folderName"
+                    label="Folder Name"
+                    type="text"
+                    fullWidth
+                    variant="standard"
+                    value={folderName}
+                    onChange={(e) => setFolderName(e.target.value)}
+                />
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose}>Cancel</Button>
+                <Button onClick={handleCreate}>Create</Button>
+            </DialogActions>
+        </Dialog>
+    );
+}
+
+CreateNewFolderDialog.propTypes = {
+    open: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    onFolderCreated: PropTypes.func.isRequired,
+};
+
+
+function ToolbarActions() {
+    const fileInputRef = React.useRef(null);
+    const [openNewFolderDialog, setOpenNewFolderDialog] = React.useState(false);
 
     const handleUploadClick = () => {
-        fileInputRef.current.click(); 
+        fileInputRef.current.click();
     };
 
     const handleFileChange = (event) => {
-      const files = event.target.files;
-      if (files.length > 0) {
-          console.log("Selected files:", files);
-      }
-      event.target.value = null;
-  };
+        const files = event.target.files;
+        if (files.length > 0) {
+            console.log("Selected files:", files);
+           
+        }
+        event.target.value = null;
+    };
 
-  return(
-    <Stack direction={'row'} spacing={1} sx={{mr: 2}} >
-      <Input
-        type="file"
-        inputRef={fileInputRef}
-        onChange={handleFileChange}
-        sx={{ display: 'none' }}
-        multiple
-      />
-        <div>
-           <Button variant='contained' onClick={handleUploadClick} >
-              Upload
-           </Button>
-           <Button>
-              New Folder
-           </Button>
-        </div>
-    </Stack>
-  )
+    const handleNewFolderClick = () => {
+        setOpenNewFolderDialog(true);
+    };
+
+    const handleCloseNewFolderDialog = () => {
+        setOpenNewFolderDialog(false);
+    };
+
+    const handleFolderCreated = (folderName) => {
+        
+        console.log(`Folder "${folderName}" successfully created (client-side simulation).`);
+    };
+
+    return (
+        <Stack direction={'row'} spacing={1} sx={{ mr: 2 }}>
+            <Input
+                type="file"
+                inputRef={fileInputRef}
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+                multiple
+            />
+            <Button variant='contained' onClick={handleUploadClick}>
+                Upload
+            </Button>
+            <Button onClick={handleNewFolderClick}>
+                New Folder
+            </Button>
+
+            <CreateNewFolderDialog
+                open={openNewFolderDialog}
+                onClose={handleCloseNewFolderDialog}
+                onFolderCreated={handleFolderCreated}
+            />
+        </Stack>
+    );
 }
+
 
 function DashboardLayoutBranding(props) {
   const { window } = props;
 
   const router = useDemoRouter('/dashboard');
 
-  
+
   const demoWindow = window !== undefined ? window() : undefined;
 
   return (
-    
+
     <DemoProvider window={demoWindow}>
-      
+
       <AppProvider
         navigation={NAVIGATION}
         branding={{
@@ -184,10 +250,11 @@ function DashboardLayoutBranding(props) {
             toolbarAccount: ToolbarActions,
           }}
         >
+         
           <DemoPageContent pathname={router.pathname} />
         </DashboardLayout>
       </AppProvider>
-    
+
     </DemoProvider>
   );
 }

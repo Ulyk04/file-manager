@@ -1,7 +1,7 @@
-// Add new imports for TextField and Dialog components if you want a dialog
+
 import { TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
-// ... (existing imports)
+
 
 function CreateNewFolderPage({ onFolderCreated, onCancel }) {
     const [folderName, setFolderName] = React.useState('');
@@ -9,9 +9,8 @@ function CreateNewFolderPage({ onFolderCreated, onCancel }) {
     const handleCreateFolder = () => {
         if (folderName.trim()) {
             console.log("Creating new folder:", folderName);
-            // In a real application, you would send this to your backend
-            // e.g., fetch('/api/create-folder', { method: 'POST', body: JSON.stringify({ name: folderName }) });
-            onFolderCreated(folderName); // Callback to indicate success and close dialog
+          
+            onFolderCreated(folderName);
         } else {
             alert('Folder name cannot be empty!');
         }
