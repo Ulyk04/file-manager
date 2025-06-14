@@ -7,30 +7,29 @@ const fs = require('fs');
 const app = express();
 const PORT = 5000;
 
-// --- Middleware ---
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Base directory for all user data (files and folders)
+
 const BASE_DIR = path.join(__dirname, 'user_data');
 
-// Create base directory if it doesn't exist
+
 if (!fs.existsSync(BASE_DIR)) {
     fs.mkdirSync(BASE_DIR);
 }
 
-// Multer storage configuration
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // Get the current path from the request body or query params
-        // Default to root if no path provided
+        
         const currentPath = req.body.currentPath || req.query.currentPath || '';
         const targetDir = path.join(BASE_DIR, currentPath);
 
-        // Ensure the target directory exists
+        
         if (!fs.existsSync(targetDir)) {
-            // Recursively create directories if they don't exist
+          
             fs.mkdirSync(targetDir, { recursive: true });
         }
         cb(null, targetDir);
@@ -42,7 +41,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// --- Helper function to get directory contents ---
 const getDirectoryContents = (currentPath = '') => {
     const fullPath = path.join(BASE_DIR, currentPath);
     if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isDirectory()) {
@@ -63,7 +61,7 @@ const getDirectoryContents = (currentPath = '') => {
                 type: 'file',
                 size: stats.size,
                 createdAt: stats.birthtime.toISOString(),
-                // URL path for direct access, relative to the server's static route
+               
                 path: `/user_data/${relativePath}`
             });
         } else if (dirent.isDirectory()) {
@@ -71,7 +69,7 @@ const getDirectoryContents = (currentPath = '') => {
                 name: dirent.name,
                 type: 'folder',
                 createdAt: stats.birthtime.toISOString(),
-                path: relativePath // Path for navigation within the frontend
+                path: relativePath 
              });
         }
     });
@@ -79,12 +77,12 @@ const getDirectoryContents = (currentPath = '') => {
 };
 
 
-// --- Routes ---
+
 
 /**
- * @route POST /api/upload
- * @description Uploads one or more files to the server in a specified path.
- * Requires `currentPath` in form data.
+ * @route 
+ * @description
+ 
  */
 app.post('/api/upload', upload.array('files'), (req, res) => {
     if (!req.files || req.files.length === 0) {
@@ -96,7 +94,7 @@ app.post('/api/upload', upload.array('files'), (req, res) => {
         originalname: file.originalname,
         size: file.size,
         mimetype: file.mimetype,
-        path: file.path.replace(BASE_DIR, '/user_data').replace(/\\/g, '/'), // Relative URL path for frontend
+        path: file.path.replace(BASE_DIR, '/user_data').replace(/\\/g, '/'), 
         uploadedAt: new Date().toISOString()
     }));
 
@@ -108,12 +106,12 @@ app.post('/api/upload', upload.array('files'), (req, res) => {
 });
 
 /**
- * @route POST /api/create-folder
- * @description Creates a new folder in a specified path.
- * Requires `name` and `currentPath` in JSON body.
+ * @route 
+ * @description 
+ 
  */
 app.post('/api/create-folder', (req, res) => {
-    const { name, currentPath = '' } = req.body; // Default to root path
+    const { name, currentPath = '' } = req.body;
 
     if (!name) {
         return res.status(400).json({ message: 'Folder name is required.' });
@@ -122,12 +120,12 @@ app.post('/api/create-folder', (req, res) => {
     const parentPath = path.join(BASE_DIR, currentPath);
     const newFolderPath = path.join(parentPath, name);
 
-    // Ensure parent directory exists
+    
     if (!fs.existsSync(parentPath) || !fs.statSync(parentPath).isDirectory()) {
         return res.status(400).json({ message: 'Invalid parent path.' });
     }
 
-    // Check if a folder with this name already exists in the target directory
+   
     const existingItems = fs.readdirSync(parentPath, { withFileTypes: true });
     const folderExists = existingItems.some(dirent =>
         dirent.isDirectory() && dirent.name.toLowerCase() === name.toLowerCase()
@@ -140,8 +138,7 @@ app.post('/api/create-folder', (req, res) => {
     try {
         fs.mkdirSync(newFolderPath);
 
-        // For a more robust app, you'd store this in a database
-        // For now, simply confirming creation
+     
         console.log(`Folder "${name}" created successfully at ${newFolderPath}`);
         res.status(201).json({
             message: `Folder "${name}" created successfully.`,
@@ -159,13 +156,12 @@ app.post('/api/create-folder', (req, res) => {
 });
 
 /**
- * @route GET /api/files-and-folders
- * @description Retrieves a list of all files and folders for a given path.
- * Accepts optional `currentPath` query parameter.
- * Example: /api/files-and-folders?currentPath=my_folder/sub_folder
+ * @route 
+ * @description .
+
  */
 app.get('/api/files-and-folders', (req, res) => {
-    const currentPath = req.query.currentPath || ''; // Get currentPath from query
+    const currentPath = req.query.currentPath || ''; 
     try {
         const items = getDirectoryContents(currentPath);
         res.status(200).json(items);
@@ -176,11 +172,11 @@ app.get('/api/files-and-folders', (req, res) => {
 });
 
 
-// Serve static files from the 'user_data' directory
+
 app.use('/user_data', express.static(BASE_DIR));
 
 
-// --- Start Server ---
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`Base data directory: ${BASE_DIR}`);

@@ -8,14 +8,14 @@ import ScheduleIcon from '@mui/icons-material/Schedule';
 import ShareIcon from '@mui/icons-material/Share';
 import DeleteIcon from '@mui/icons-material/Delete';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'; // For going back
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'; 
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { DemoProvider, useDemoRouter } from '@toolpad/core/internal';
 import {
     Button, Stack, Input, TextField, Dialog, DialogTitle, DialogContent,
     DialogActions, List, ListItem, ListItemText, ListItemIcon,
-    CircularProgress, Breadcrumbs, Link as MuiLink // Import Link for breadcrumbs
+    CircularProgress, Breadcrumbs, Link as MuiLink 
 } from '@mui/material';
 
 const NAVIGATION = [
@@ -77,15 +77,15 @@ const demoTheme = createTheme({
 });
 
 function AllFilesContent({ filesAndFolders, isLoading, error, currentPath, onNavigate, onGoBack }) {
-    // Generate breadcrumbs
-    const pathParts = currentPath.split('/').filter(Boolean); // Filter Boolean to remove empty strings from split
+    
+    const pathParts = currentPath.split('/').filter(Boolean); 
     const breadcrumbs = [
         <MuiLink
             key="root"
             underline="hover"
             color="inherit"
             href="#"
-            onClick={() => onNavigate('')} // Navigate to root
+            onClick={() => onNavigate('')} 
         >
             Home
         </MuiLink>,
@@ -134,7 +134,7 @@ function AllFilesContent({ filesAndFolders, isLoading, error, currentPath, onNav
                 {breadcrumbs}
             </Breadcrumbs>
 
-            {currentPath && ( // Show "Go Back" button only if not at root
+            {currentPath && (
                 <Button startIcon={<ArrowBackIcon />} onClick={onGoBack} sx={{ mb: 2 }}>
                     Go Back
                 </Button>
@@ -147,9 +147,9 @@ function AllFilesContent({ filesAndFolders, isLoading, error, currentPath, onNav
                 <List>
                     {filesAndFolders.map((item) => (
                         <ListItem
-                            key={item.path} // Use item.path as key for uniqueness
+                            key={item.path} 
                             sx={{ borderBottom: '1px solid #eee' }}
-                            button={item.type === 'folder'} // Make folders clickable
+                            button={item.type === 'folder'} 
                             onClick={item.type === 'folder' ? () => onNavigate(item.path) : undefined}
                         >
                             <ListItemIcon>
@@ -162,7 +162,7 @@ function AllFilesContent({ filesAndFolders, isLoading, error, currentPath, onNav
                                     `Created: ${new Date(item.createdAt).toLocaleString()}`
                                 }
                             />
-                            {/* Optional: Add buttons for opening, deleting, etc. */}
+                           
                         </ListItem>
                     ))}
                 </List>
@@ -264,7 +264,7 @@ CreateNewFolderDialog.propTypes = {
 };
 
 
-function ToolbarActions({ refreshFilesAndFolders, currentPath }) { // Receive currentPath
+function ToolbarActions({ refreshFilesAndFolders, currentPath }) { 
     const fileInputRef = React.useRef(null);
     const [openNewFolderDialog, setOpenNewFolderDialog] = React.useState(false);
 
@@ -279,7 +279,7 @@ function ToolbarActions({ refreshFilesAndFolders, currentPath }) { // Receive cu
             for (let i = 0; i < files.length; i++) {
                 formData.append('files', files[i]);
             }
-            formData.append('currentPath', currentPath); // Pass the current path
+            formData.append('currentPath', currentPath);
 
             try {
                 const response = await fetch('http://localhost:5000/api/upload', {
@@ -319,7 +319,7 @@ function ToolbarActions({ refreshFilesAndFolders, currentPath }) { // Receive cu
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ name: folderName, currentPath: currentPath }), // Pass currentPath
+                body: JSON.stringify({ name: folderName, currentPath: currentPath }), 
             });
 
             if (!response.ok) {
@@ -364,7 +364,7 @@ function ToolbarActions({ refreshFilesAndFolders, currentPath }) { // Receive cu
 
 ToolbarActions.propTypes = {
     refreshFilesAndFolders: PropTypes.func.isRequired,
-    currentPath: PropTypes.string.isRequired, // Add propType for currentPath
+    currentPath: PropTypes.string.isRequired, 
 };
 
 
@@ -376,7 +376,7 @@ function DashboardLayoutBranding(props) {
     const [filesAndFolders, setFilesAndFolders] = React.useState([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [error, setError] = React.useState(null);
-    const [currentPath, setCurrentPath] = React.useState(''); // New state for current path
+    const [currentPath, setCurrentPath] = React.useState(''); 
 
     const fetchFilesAndFolders = React.useCallback(async (path = '') => {
         setIsLoading(true);
@@ -399,23 +399,23 @@ function DashboardLayoutBranding(props) {
     }, []);
 
     React.useEffect(() => {
-        // Fetch files for the current path whenever currentPath changes
+ 
         fetchFilesAndFolders(currentPath);
-    }, [fetchFilesAndFolders, currentPath]); // Add currentPath as a dependency
+    }, [fetchFilesAndFolders, currentPath]); 
 
     const handleNavigateToFolder = (path) => {
         setCurrentPath(path);
-        // No need to call fetchFilesAndFolders here, useEffect will handle it
+        
     };
 
     const handleGoBack = () => {
         const pathParts = currentPath.split('/').filter(Boolean);
         if (pathParts.length > 0) {
-            pathParts.pop(); // Remove the last segment
+            pathParts.pop(); 
             const newPath = pathParts.join('/');
             setCurrentPath(newPath);
         } else {
-            setCurrentPath(''); // Already at root
+            setCurrentPath(''); 
         }
     };
 
@@ -436,8 +436,8 @@ function DashboardLayoutBranding(props) {
                     slots={{
                         toolbarAccount: () => (
                             <ToolbarActions
-                                refreshFilesAndFolders={() => fetchFilesAndFolders(currentPath)} // Ensure refresh is for current path
-                                currentPath={currentPath} // Pass current path to ToolbarActions
+                                refreshFilesAndFolders={() => fetchFilesAndFolders(currentPath)} 
+                                currentPath={currentPath} 
                             />
                         ),
                     }}
@@ -447,9 +447,9 @@ function DashboardLayoutBranding(props) {
                         filesAndFolders={filesAndFolders}
                         isLoading={isLoading}
                         error={error}
-                        currentPath={currentPath} // Pass currentPath
-                        onNavigate={handleNavigateToFolder} // Pass navigation function
-                        onGoBack={handleGoBack} // Pass go back function
+                        currentPath={currentPath} 
+                        onNavigate={handleNavigateToFolder} 
+                        onGoBack={handleGoBack} 
                     />
                 </DashboardLayout>
             </AppProvider>
