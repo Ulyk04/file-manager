@@ -149,7 +149,7 @@ function AllFilesContent({ filesAndFolders, isLoading, error, currentPath, onNav
                         <ListItem
                             key={item.path} 
                             sx={{ borderBottom: '1px solid #eee' }}
-                            button={item.type === 'folder'} 
+                            {...(item.type === 'folder' && { button: true })}
                             onClick={item.type === 'folder' ? () => onNavigate(item.path) : undefined}
                         >
                             <ListItemIcon>
@@ -279,6 +279,10 @@ function ToolbarActions({ refreshFilesAndFolders, currentPath }) {
             for (let i = 0; i < files.length; i++) {
                 formData.append('files', files[i]);
             }
+
+            console.log('Frontend: currentPath being sent:', currentPath); 
+            formData.append('currentPath', currentPath); 
+
             formData.append('currentPath', currentPath);
 
             try {

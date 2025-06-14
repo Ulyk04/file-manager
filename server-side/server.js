@@ -20,22 +20,48 @@ if (!fs.existsSync(BASE_DIR)) {
     fs.mkdirSync(BASE_DIR);
 }
 
-
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
+     
+        console.log('--- Multer Destination Debug ---');
+        console.log('req.body:', req.body);
+        console.log('req.query:', req.query);
+        console.log('File originalname:', file.originalname);
+
         
-        const currentPath = req.body.currentPath || req.query.currentPath || '';
-        const targetDir = path.join(BASE_DIR, currentPath);
+        const currentPath = req.body.currentPath ? String(req.body.currentPath) : ''; 
+        
+     
+        const sanitizedPath = path.normalize(currentPath).replace(/^(\.\.(\/|\\|$))+/, ''); 
+        
+        console.log('Current Path received (raw):', currentPath);
+        console.log('Current Path sanitized:', sanitizedPath);
+
+        
+        const targetDir = path.join(BASE_DIR, sanitizedPath);
+        console.log('BASE_DIR:', BASE_DIR);
+        console.log('Calculated Target Directory:', targetDir);
 
         
         if (!fs.existsSync(targetDir)) {
-          
-            fs.mkdirSync(targetDir, { recursive: true });
+            console.log(`Target directory "${targetDir}" does not exist. Creating...`);
+            try {
+                fs.mkdirSync(targetDir, { recursive: true });
+                console.log(`Successfully created directory: ${targetDir}`);
+            } catch (err) {
+                console.error(`ERROR: Failed to create directory "${targetDir}":`, err);
+                return cb(new Error(`Failed to create directory: ${err.message}`));
+            }
+        } else {
+            console.log(`Target directory "${targetDir}" already exists.`);
         }
-        cb(null, targetDir);
+
+        cb(null, targetDir); 
     },
     filename: function (req, file, cb) {
-        cb(null, `${Date.now()}-${file.originalname}`);
+        
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, `${uniqueSuffix}-${file.originalname}`);
     }
 });
 
