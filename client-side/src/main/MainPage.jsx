@@ -281,8 +281,7 @@ function ToolbarActions({ refreshFilesAndFolders, currentPath }) {
             }
 
             console.log('Frontend: currentPath being sent:', currentPath); 
-            formData.append('currentPath', currentPath); 
-
+          
             formData.append('currentPath', currentPath);
 
             try {
@@ -381,6 +380,9 @@ function DashboardLayoutBranding(props) {
     const [isLoading, setIsLoading] = React.useState(true);
     const [error, setError] = React.useState(null);
     const [currentPath, setCurrentPath] = React.useState(''); 
+    
+ 
+    const currentSegment = router.pathname.split('/').pop() || '';
 
     const fetchFilesAndFolders = React.useCallback(async (path = '') => {
         setIsLoading(true);
@@ -403,9 +405,18 @@ function DashboardLayoutBranding(props) {
     }, []);
 
     React.useEffect(() => {
- 
-        fetchFilesAndFolders(currentPath);
-    }, [fetchFilesAndFolders, currentPath]); 
+    
+        console.log('DashboardLayoutBranding useEffect: currentSegment =', currentSegment);
+
+        
+        if (currentSegment === 'allfiles') {
+            fetchFilesAndFolders(currentPath);
+        } else {
+            setFilesAndFolders([]);
+            setIsLoading(false);
+            setError(null);
+        }
+    }, [fetchFilesAndFolders, currentPath, currentSegment]); 
 
     const handleNavigateToFolder = (path) => {
         setCurrentPath(path);
@@ -447,7 +458,7 @@ function DashboardLayoutBranding(props) {
                     }}
                 >
                     <DemoPageContent
-                        pathname={router.pathname.replace('/dashboard/', '')}
+                        pathname={currentSegment} 
                         filesAndFolders={filesAndFolders}
                         isLoading={isLoading}
                         error={error}
