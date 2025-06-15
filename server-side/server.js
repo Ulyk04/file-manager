@@ -102,6 +102,17 @@ const getDirectoryContents = (currentPath = '') => {
     return items;
 };
 
+const getFileMetadata = (filePath, fileName) => {
+    const stats = fs.statSync(filePath);
+    return {
+        name: fileName,
+        path: filePath.substring(BASE_DIR.length).replace(/\\/g, '/'), // Relative path
+        type: stats.isDirectory() ? 'folder' : 'file',
+        size: stats.isDirectory() ? 0 : stats.size,
+        createdAt: stats.birthtime,
+        modifiedAt: stats.mtime,
+    };
+};
 
 
 
@@ -188,15 +199,87 @@ app.post('/api/create-folder', (req, res) => {
  */
 app.get('/api/files-and-folders', (req, res) => {
     const currentPath = req.query.currentPath || ''; 
+    const absolutePath = path.join(BASE_DIR, currentPath);
+
+    if (!fs.existsSync(absolutePath)) {
+        return res.status(404).json({ message: 'Directory not found.' });
+    }
+
     try {
         const items = getDirectoryContents(currentPath);
         res.status(200).json(items);
+        const files = fs.readdirSync(absolutePath);
+        const fileList = files.map(file => {
+            const filePath = path.join(absolutePath, file);
+            return getFileMetadata(filePath, file);
+        });
+        res.json(fileList);
     } catch (error) {
         console.error('Error listing files and folders:', error);
         res.status(500).json({ message: 'Failed to list files and folders.', error: error.message });
     }
 });
 
+app.get('/api/recent-files', (req, res) => {
+    try {
+      
+
+        let allFiles = [];
+
+        const walkDir = (dir) => {
+            const files = fs.readdirSync(dir);
+            for (const file of files) {
+                const filePath = path.join(dir, file);
+                const stats = fs.statSync(filePath);
+                if (stats.isDirectory()) {
+                    walkDir(filePath); 
+                } else {
+                    allFiles.push(getFileMetadata(filePath, file));
+                }
+            }
+        };
+
+        walkDir(BASE_DIR);
+
+    
+        const recentFiles = allFiles.sort((a, b) => b.modifiedAt - a.modifiedAt);
+
+        
+        res.json(recentFiles.slice(0, 50)); 
+
+    } catch (error) {
+        console.error("Error fetching recent files:", error);
+        res.status(500).json({ message: 'Failed to retrieve recent files.' });
+    }
+});
+
+app.get('/api/shared-files', (req, res) => {
+   
+    console.log("Fetching shared files (placeholder)");
+    res.json([]); 
+   
+});
+
+app.get('/api/trash-files', (req, res) => {
+    const trashDir = path.join(BASE_DIR, '_trash_'); 
+
+    if (!fs.existsSync(trashDir)) {
+        console.log(`Trash directory not found: ${trashDir}`);
+        return res.json([]);
+    }
+
+    try {
+        const filesInTrash = fs.readdirSync(trashDir);
+        const trashFileList = filesInTrash.map(file => {
+            const filePath = path.join(trashDir, file);
+            return getFileMetadata(filePath, file);
+        });
+        res.json(trashFileList);
+    } catch (error) {
+        console.error("Error fetching trash files:", error);
+        res.status(500).json({ message: 'Failed to retrieve trash files.' });
+    }
+});
 
 
 app.use('/user_data', express.static(BASE_DIR));
