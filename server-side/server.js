@@ -14,10 +14,16 @@ app.use(express.urlencoded({ extended: true }));
 
 
 const BASE_DIR = path.join(__dirname, 'user_data');
+const TRASH_DIR = path.join(BASE_DIR, '.trash_');
 
 
 if (!fs.existsSync(BASE_DIR)) {
     fs.mkdirSync(BASE_DIR);
+    console.log(`Created BASE_DIR: ${BASE_DIR}`);
+}
+if (!fs.existsSync(TRASH_DIR)) {
+    fs.mkdirSync(TRASH_DIR);
+    console.log(`Created TRASH_DIR: ${TRASH_DIR}`);
 }
 
 const storage = multer.diskStorage({
@@ -30,8 +36,6 @@ const storage = multer.diskStorage({
 
         
         const currentPath = req.body.currentPath ? String(req.body.currentPath) : ''; 
-        
-     
         const sanitizedPath = path.normalize(currentPath).replace(/^(\.\.(\/|\\|$))+/, ''); 
         
         console.log('Current Path received (raw):', currentPath);
@@ -77,41 +81,40 @@ const getDirectoryContents = (currentPath = '') => {
     const filesAndFolders = fs.readdirSync(fullPath, { withFileTypes: true });
 
     filesAndFolders.forEach(dirent => {
-        const itemFullPath = path.join(fullPath, dirent.name);
-        const stats = fs.statSync(itemFullPath);
-        const relativePath = path.join(currentPath, dirent.name).replace(/\\/g, '/');
+        if (dirent.name === path.basename(TRASH_DIR)) {
+            return; 
+        }
 
-        if (dirent.isFile()) {
-            items.push({
-                name: dirent.name,
-                type: 'file',
-                size: stats.size,
-                createdAt: stats.birthtime.toISOString(),
-               
-                path: `/user_data/${relativePath}`
-            });
-        } else if (dirent.isDirectory()) {
-             items.push({
-                name: dirent.name,
-                type: 'folder',
-                createdAt: stats.birthtime.toISOString(),
-                path: relativePath 
-             });
+        const itemFullPath = path.join(fullPath, dirent.name);
+        const metadata = getFileMetadata(itemFullPath, dirent.name);
+        
+        if (metadata) {
+            metadata.createdAt = metadata.createdAt.toISOString();
+            metadata.modifiedAt = metadata.modifiedAt.toISOString();
+            items.push(metadata);
         }
     });
     return items;
 };
 
 const getFileMetadata = (filePath, fileName) => {
-    const stats = fs.statSync(filePath);
-    return {
-        name: fileName,
-        path: filePath.substring(BASE_DIR.length).replace(/\\/g, '/'), // Relative path
-        type: stats.isDirectory() ? 'folder' : 'file',
-        size: stats.isDirectory() ? 0 : stats.size,
-        createdAt: stats.birthtime,
-        modifiedAt: stats.mtime,
-    };
+    try {
+        const stats = fs.statSync(filePath);
+        const relativePath = filePath.substring(BASE_DIR.length).replace(/\\/g, '/');
+        const cleanedRelativePath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+
+        return {
+            name: fileName,
+            path: cleanedRelativePath, 
+            type: stats.isDirectory() ? 'folder' : 'file',
+            size: stats.isDirectory() ? 0 : stats.size,
+            createdAt: stats.birthtime, 
+            modifiedAt: stats.mtime,     
+        };
+    } catch (error) {
+        console.error(`Error getting metadata for ${filePath}:`, error);
+        return null; 
+    }
 };
 
 
@@ -195,30 +198,66 @@ app.post('/api/create-folder', (req, res) => {
 /**
  * @route 
  * @description .
-
  */
+
 app.get('/api/files-and-folders', (req, res) => {
     const currentPath = req.query.currentPath || ''; 
     const absolutePath = path.join(BASE_DIR, currentPath);
 
     if (!fs.existsSync(absolutePath)) {
+        
         return res.status(404).json({ message: 'Directory not found.' });
     }
 
     try {
         const items = getDirectoryContents(currentPath);
-        res.status(200).json(items);
-        const files = fs.readdirSync(absolutePath);
-        const fileList = files.map(file => {
-            const filePath = path.join(absolutePath, file);
-            return getFileMetadata(filePath, file);
-        });
-        res.json(fileList);
+        
+        res.status(200).json(items); 
+        
+       
     } catch (error) {
         console.error('Error listing files and folders:', error);
-        res.status(500).json({ message: 'Failed to list files and folders.', error: error.message });
+        return res.status(500).json({ message: 'Failed to list files and folders.', error: error.message });
     }
 });
+
+app.post('/api/move-to-trash', (req, res) => {
+    const { path: itemPath } = req.body; 
+
+    if (!itemPath) {
+        return res.status(400).json({ message: 'Item path is required.' });
+    }
+
+    const sourcePath = path.join(BASE_DIR, itemPath);
+    const targetPath = path.join(TRASH_DIR, path.basename(sourcePath)); 
+
+    if (!fs.existsSync(sourcePath)) {
+        return res.status(404).json({ message: 'Item not found.' });
+    }
+
+    try {
+        
+        let finalTargetPath = targetPath;
+        let counter = 1;
+        const originalBaseName = path.basename(targetPath);
+        const originalExt = path.extname(originalBaseName);
+        const originalNameWithoutExt = path.basename(originalBaseName, originalExt);
+
+        while (fs.existsSync(finalTargetPath)) {
+            
+            finalTargetPath = path.join(TRASH_DIR, `${originalNameWithoutExt} (${counter})${originalExt}`);
+            counter++;
+        }
+
+        fs.renameSync(sourcePath, finalTargetPath); 
+        console.log(`Moved "${itemPath}" to trash: ${finalTargetPath}`);
+        return res.status(200).json({ message: 'Item moved to trash successfully.', newPath: finalTargetPath });
+    } catch (error) {
+        console.error('Error moving item to trash:', error);
+        return res.status(500).json({ message: 'Failed to move item to trash.', error: error.message });
+    }
+});
+
 
 app.get('/api/recent-files', (req, res) => {
     try {
@@ -231,10 +270,18 @@ app.get('/api/recent-files', (req, res) => {
             for (const file of files) {
                 const filePath = path.join(dir, file);
                 const stats = fs.statSync(filePath);
+
+                if (filePath === TRASH_DIR || filePath.startsWith(TRASH_DIR + path.sep)) {
+                    continue; 
+                }
+
                 if (stats.isDirectory()) {
                     walkDir(filePath); 
                 } else {
-                    allFiles.push(getFileMetadata(filePath, file));
+                    const metadata = getFileMetadata(filePath, file);
+                    if (metadata) {
+                        allFiles.push(metadata);
+                    }
                 }
             }
         };
@@ -242,8 +289,13 @@ app.get('/api/recent-files', (req, res) => {
         walkDir(BASE_DIR);
 
     
-        const recentFiles = allFiles.sort((a, b) => b.modifiedAt - a.modifiedAt);
-
+        const recentFiles = allFiles
+            .sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime())
+            .map(file => ({
+                ...file,
+                createdAt: file.createdAt.toISOString(),
+                modifiedAt: file.modifiedAt.toISOString(),
+            }));
         
         res.json(recentFiles.slice(0, 50)); 
 
@@ -261,26 +313,34 @@ app.get('/api/shared-files', (req, res) => {
 });
 
 app.get('/api/trash-files', (req, res) => {
-    const trashDir = path.join(BASE_DIR, '_trash_'); 
-
-    if (!fs.existsSync(trashDir)) {
-        console.log(`Trash directory not found: ${trashDir}`);
+    if (!fs.existsSync(TRASH_DIR)) { 
+        console.log(`Trash directory not found: ${TRASH_DIR}`);
         return res.json([]);
     }
 
     try {
-        const filesInTrash = fs.readdirSync(trashDir);
+        const filesInTrash = fs.readdirSync(TRASH_DIR);
         const trashFileList = filesInTrash.map(file => {
-            const filePath = path.join(trashDir, file);
-            return getFileMetadata(filePath, file);
-        });
-        res.json(trashFileList);
+            const filePath = path.join(TRASH_DIR, file);
+            const metadata = getFileMetadata(filePath, file);
+            if (metadata) {
+                const trashRelativePath = path.join(path.basename(TRASH_DIR), file).replace(/\\/g, '/');
+                return {
+                    ...metadata,
+                    path: trashRelativePath, 
+                    createdAt: metadata.createdAt.toISOString(),
+                    modifiedAt: metadata.modifiedAt.toISOString(),
+                };
+            }
+            return null;
+        }).filter(Boolean); 
+        
+        return res.json(trashFileList);
     } catch (error) {
         console.error("Error fetching trash files:", error);
-        res.status(500).json({ message: 'Failed to retrieve trash files.' });
+        return res.status(500).json({ message: 'Failed to retrieve trash files.' });
     }
 });
-
 
 app.use('/user_data', express.static(BASE_DIR));
 
@@ -289,4 +349,5 @@ app.use('/user_data', express.static(BASE_DIR));
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`Base data directory: ${BASE_DIR}`);
+    console.log(`Trash directory: ${TRASH_DIR}`);
 });

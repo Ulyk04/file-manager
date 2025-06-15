@@ -15,7 +15,7 @@ import { DemoProvider, useDemoRouter } from '@toolpad/core/internal';
 import {
     Button, Stack, Input, TextField, Dialog, DialogTitle, DialogContent,
     DialogActions, List, ListItem, ListItemText, ListItemIcon,
-    CircularProgress, Breadcrumbs, Link as MuiLink 
+    CircularProgress, Breadcrumbs, Link as MuiLink , IconButton
 } from '@mui/material';
 
 const NAVIGATION = [
@@ -76,7 +76,7 @@ const demoTheme = createTheme({
     },
 });
 
-function AllFilesContent({ filesAndFolders, isLoading, error, currentPath, onNavigate, onGoBack }) {
+function AllFilesContent({ filesAndFolders, isLoading, error, currentPath, onNavigate, onGoBack , onDeleteItem}) {
     
     const pathParts = currentPath.split('/').filter(Boolean); 
     const breadcrumbs = [
@@ -151,6 +151,14 @@ function AllFilesContent({ filesAndFolders, isLoading, error, currentPath, onNav
                             sx={{ borderBottom: '1px solid #eee' }}
                             {...(item.type === 'folder' && { button: true })}
                             onClick={item.type === 'folder' ? () => onNavigate(item.path) : undefined}
+                            secondaryAction={
+                                <IconButton edge="end" aria-label="delete" onClick={(e) => {
+                                    e.stopPropagation(); 
+                                    onDeleteItem(item.path, item.name);
+                                }}>
+                                    <DeleteIcon />
+                                </IconButton>
+                            }
                         >
                             <ListItemIcon>
                                 {item.type === 'folder' ? <FolderIcon /> : <InsertDriveFileIcon />}
@@ -178,6 +186,7 @@ AllFilesContent.propTypes = {
     currentPath: PropTypes.string.isRequired,
     onNavigate: PropTypes.func.isRequired,
     onGoBack: PropTypes.func.isRequired,
+    onDeleteItem: PropTypes.func.isRequired, 
 };
 
 function DemoPageContent({ pathname, filesAndFolders, isLoading, error, currentPath, onNavigate, onGoBack }) {
@@ -194,6 +203,7 @@ function DemoPageContent({ pathname, filesAndFolders, isLoading, error, currentP
         );
     }
 
+ 
     return (
         <Box
             sx={{
@@ -204,10 +214,40 @@ function DemoPageContent({ pathname, filesAndFolders, isLoading, error, currentP
                 textAlign: 'center',
             }}
         >
-            <Typography>Dashboard content for {pathname}</Typography>
+            <Typography variant="h5" component="h2" gutterBottom>
+                {pathname.charAt(0).toUpperCase() + pathname.slice(1)}
+            </Typography>
+            {isLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100px' }}>
+                    <CircularProgress />
+                    <Typography sx={{ ml: 2 }}>Loading...</Typography>
+                </Box>
+            ) : error ? (
+                <Typography sx={{ mt: 2, color: 'error.main' }}>Error: {error}</Typography>
+            ) : filesAndFolders.length === 0 ? (
+                <Typography sx={{ mt: 2 }}>No items found in this section.</Typography>
+            ) : (
+                <List sx={{ width: '100%', maxWidth: 600 }}>
+                    {filesAndFolders.map((item) => (
+                        <ListItem key={item.path} sx={{ borderBottom: '1px solid #eee' }}>
+                            <ListItemIcon>
+                                {item.type === 'folder' ? <FolderIcon /> : <InsertDriveFileIcon />}
+                            </ListItemIcon>
+                            <ListItemText
+                                primary={item.name}
+                                secondary={item.type === 'file' ?
+                                    `Size: ${(item.size / 1024).toFixed(2)} KB | Modified: ${new Date(item.modifiedAt).toLocaleString()}` :
+                                    `Created: ${new Date(item.createdAt).toLocaleString()}`
+                                }
+                            />
+                        </ListItem>
+                    ))}
+                </List>
+            )}
         </Box>
     );
 }
+
 
 DemoPageContent.propTypes = {
     pathname: PropTypes.string.isRequired,
@@ -264,7 +304,7 @@ CreateNewFolderDialog.propTypes = {
 };
 
 
-function ToolbarActions({ refreshFilesAndFolders, currentPath }) { 
+function ToolbarActions({ refreshFilesAndFolders, currentPath, disableActions }) { 
     const fileInputRef = React.useRef(null);
     const [openNewFolderDialog, setOpenNewFolderDialog] = React.useState(false);
 
@@ -298,7 +338,10 @@ function ToolbarActions({ refreshFilesAndFolders, currentPath }) {
                 const data = await response.json();
                 console.log('Upload successful:', data);
                 alert('Files uploaded successfully!');
-                refreshFilesAndFolders();
+                
+                if (typeof refreshFilesAndFolders === 'function') {
+                    refreshFilesAndFolders();
+                }
             } catch (error) {
                 console.error('Upload error:', error);
                 alert(`Upload failed: ${error.message}`);
@@ -333,7 +376,10 @@ function ToolbarActions({ refreshFilesAndFolders, currentPath }) {
             const data = await response.json();
             console.log('Folder created successfully:', data);
             alert(`Folder "${folderName}" created successfully!`);
-            refreshFilesAndFolders();
+            
+            if (typeof refreshFilesAndFolders === 'function') {
+                refreshFilesAndFolders();
+            }
         } catch (error) {
             console.error('Error creating folder:', error);
             alert(`Failed to create folder: ${error.message}`);
@@ -348,11 +394,12 @@ function ToolbarActions({ refreshFilesAndFolders, currentPath }) {
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
                 multiple
+                disabled={disableActions} 
             />
-            <Button variant='contained' onClick={handleUploadClick}>
+            <Button variant='contained' onClick={handleUploadClick} disabled={disableActions}>
                 Upload
             </Button>
-            <Button onClick={handleNewFolderClick}>
+            <Button onClick={handleNewFolderClick} disabled={disableActions}>
                 New Folder
             </Button>
 
@@ -366,8 +413,9 @@ function ToolbarActions({ refreshFilesAndFolders, currentPath }) {
 }
 
 ToolbarActions.propTypes = {
-    refreshFilesAndFolders: PropTypes.func.isRequired,
+    refreshFilesAndFolders: PropTypes.func,
     currentPath: PropTypes.string.isRequired, 
+    disableActions: PropTypes.bool, 
 };
 
 
@@ -409,7 +457,7 @@ function DashboardLayoutBranding(props) {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch('http://localhost:5000/api/recent-files'); // NEW BACKEND ENDPOINT
+            const response = await fetch('http://localhost:5000/api/recent-files'); 
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
@@ -428,14 +476,18 @@ function DashboardLayoutBranding(props) {
     const fetchSharedFiles = React.useCallback(async () => {
         setIsLoading(true);
         setError(null);
-        
         try {
-            
-            setFilesAndFolders([]); 
-            setIsLoading(false);
+            const response = await fetch('http://localhost:5000/api/shared-files'); // Added fetch for shared
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+            }
+            const data = await response.json();
+            setFilesAndFolders(data); 
         } catch (err) {
             console.error("Failed to fetch shared files:", err);
             setError(err.message || 'An unknown error occurred while fetching shared data.');
+        } finally {
             setIsLoading(false);
         }
     }, []);
@@ -444,18 +496,49 @@ function DashboardLayoutBranding(props) {
     const fetchTrashFiles = React.useCallback(async () => {
         setIsLoading(true);
         setError(null);
-        
         try {
-            
-            setFilesAndFolders([]); 
-            setIsLoading(false);
+            const response = await fetch('http://localhost:5000/api/trash-files'); 
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+            }
+            const data = await response.json();
+            setFilesAndFolders(data); 
         } catch (err) {
             console.error("Failed to fetch trash files:", err);
             setError(err.message || 'An unknown error occurred while fetching trash data.');
+        } finally {
             setIsLoading(false);
         }
     }, []);
 
+    const handleDeleteItem = React.useCallback(async (itemPath, itemName) => {
+        if (!window.confirm(`Are you sure you want to move "${itemName}" to Trash?`)) {
+            return; 
+        }
+
+        try {
+            const response = await fetch('http://localhost:5000/api/move-to-trash', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ path: itemPath }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to move item to trash.');
+            }
+
+            console.log(`"${itemName}" moved to Trash successfully.`);
+            alert(`"${itemName}" moved to Trash successfully.`);
+            fetchAllFilesAndFolders(currentPath); 
+        } catch (error) {
+            console.error('Error moving item to trash:', error);
+            alert(`Failed to move "${itemName}" to trash: ${error.message}`);
+        }
+    }, [currentPath, fetchAllFilesAndFolders]); 
 
     React.useEffect(() => {
         console.log('DashboardLayoutBranding useEffect: currentSegment =', currentSegment);
@@ -482,7 +565,7 @@ function DashboardLayoutBranding(props) {
    
 
     const handleNavigateToFolder = (path) => {
-        
+       
         if (currentSegment === 'allfiles') {
             setCurrentPath(path);
         }
@@ -499,8 +582,9 @@ function DashboardLayoutBranding(props) {
                 setCurrentPath(''); 
             }
         }
-        
     };
+
+    const isAllFilesSegment = currentSegment === 'allfiles';
 
     return (
         <DemoProvider window={demoWindow}>
@@ -519,24 +603,22 @@ function DashboardLayoutBranding(props) {
                     slots={{
                         toolbarAccount: () => (
                             <ToolbarActions
-                                
-                                {...(currentSegment === 'allfiles' && {
-                                    refreshFilesAndFolders: () => fetchAllFilesAndFolders(currentPath), 
-                                    currentPath: currentPath, 
-                                })}
-                               
+                                refreshFilesAndFolders={isAllFilesSegment ? () => fetchAllFilesAndFolders(currentPath) : undefined} 
+                                currentPath={currentPath} 
+                                disableActions={!isAllFilesSegment} 
                             />
                         ),
                     }}
                 >
                     <DemoPageContent
-                        pathname={currentSegment}
+                        pathname={currentSegment} 
                         filesAndFolders={filesAndFolders}
                         isLoading={isLoading}
                         error={error}
                         currentPath={currentPath} 
                         onNavigate={handleNavigateToFolder} 
                         onGoBack={handleGoBack} 
+                        onDeleteItem={isAllFilesSegment ? handleDeleteItem : undefined} 
                     />
                 </DashboardLayout>
             </AppProvider>
