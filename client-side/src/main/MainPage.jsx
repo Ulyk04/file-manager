@@ -381,10 +381,10 @@ function DashboardLayoutBranding(props) {
     const [error, setError] = React.useState(null);
     const [currentPath, setCurrentPath] = React.useState(''); 
     
- 
-    const currentSegment = router.pathname.split('/').pop() || '';
+    const currentSegment = router.pathname.split('/').pop() || ''; 
 
-    const fetchFilesAndFolders = React.useCallback(async (path = '') => {
+    
+    const fetchAllFilesAndFolders = React.useCallback(async (path = '') => {
         setIsLoading(true);
         setError(null);
         try {
@@ -397,41 +397,109 @@ function DashboardLayoutBranding(props) {
             const data = await response.json();
             setFilesAndFolders(data);
         } catch (err) {
-            console.error("Failed to fetch files and folders:", err);
+            console.error("Failed to fetch all files and folders:", err);
             setError(err.message || 'An unknown error occurred while fetching data.');
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    React.useEffect(() => {
+   
+    const fetchRecentFiles = React.useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch('http://localhost:5000/api/recent-files'); // NEW BACKEND ENDPOINT
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+            }
+            const data = await response.json();
+            setFilesAndFolders(data); 
+        } catch (err) {
+            console.error("Failed to fetch recent files:", err);
+            setError(err.message || 'An unknown error occurred while fetching recent data.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     
+    const fetchSharedFiles = React.useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            
+            setFilesAndFolders([]); 
+            setIsLoading(false);
+        } catch (err) {
+            console.error("Failed to fetch shared files:", err);
+            setError(err.message || 'An unknown error occurred while fetching shared data.');
+            setIsLoading(false);
+        }
+    }, []);
+
+   
+    const fetchTrashFiles = React.useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            
+            setFilesAndFolders([]); 
+            setIsLoading(false);
+        } catch (err) {
+            console.error("Failed to fetch trash files:", err);
+            setError(err.message || 'An unknown error occurred while fetching trash data.');
+            setIsLoading(false);
+        }
+    }, []);
+
+
+    React.useEffect(() => {
         console.log('DashboardLayoutBranding useEffect: currentSegment =', currentSegment);
 
         
         if (currentSegment === 'allfiles') {
-            fetchFilesAndFolders(currentPath);
+            fetchAllFilesAndFolders(currentPath);
+        } else if (currentSegment === 'recent') {
+            fetchRecentFiles();
+            setCurrentPath(''); 
+        } else if (currentSegment === 'shared') {
+            fetchSharedFiles();
+            setCurrentPath(''); 
+        } else if (currentSegment === 'trash') {
+            fetchTrashFiles();
+            setCurrentPath(''); 
         } else {
+            
             setFilesAndFolders([]);
             setIsLoading(false);
             setError(null);
         }
-    }, [fetchFilesAndFolders, currentPath, currentSegment]); 
+    }, [fetchAllFilesAndFolders, fetchRecentFiles, fetchSharedFiles, fetchTrashFiles, currentPath, currentSegment]); 
+   
 
     const handleNavigateToFolder = (path) => {
-        setCurrentPath(path);
         
+        if (currentSegment === 'allfiles') {
+            setCurrentPath(path);
+        }
     };
 
     const handleGoBack = () => {
-        const pathParts = currentPath.split('/').filter(Boolean);
-        if (pathParts.length > 0) {
-            pathParts.pop(); 
-            const newPath = pathParts.join('/');
-            setCurrentPath(newPath);
-        } else {
-            setCurrentPath(''); 
+        if (currentSegment === 'allfiles') {
+            const pathParts = currentPath.split('/').filter(Boolean);
+            if (pathParts.length > 0) {
+                pathParts.pop(); 
+                const newPath = pathParts.join('/');
+                setCurrentPath(newPath);
+            } else {
+                setCurrentPath(''); 
+            }
         }
+        
     };
 
     return (
@@ -451,14 +519,18 @@ function DashboardLayoutBranding(props) {
                     slots={{
                         toolbarAccount: () => (
                             <ToolbarActions
-                                refreshFilesAndFolders={() => fetchFilesAndFolders(currentPath)} 
-                                currentPath={currentPath} 
+                                
+                                {...(currentSegment === 'allfiles' && {
+                                    refreshFilesAndFolders: () => fetchAllFilesAndFolders(currentPath), 
+                                    currentPath: currentPath, 
+                                })}
+                               
                             />
                         ),
                     }}
                 >
                     <DemoPageContent
-                        pathname={currentSegment} 
+                        pathname={currentSegment}
                         filesAndFolders={filesAndFolders}
                         isLoading={isLoading}
                         error={error}
