@@ -189,7 +189,7 @@ AllFilesContent.propTypes = {
     onDeleteItem: PropTypes.func.isRequired, 
 };
 
-function DemoPageContent({ pathname, filesAndFolders, isLoading, error, currentPath, onNavigate, onGoBack }) {
+function DemoPageContent({ pathname, filesAndFolders, isLoading, error, currentPath, onNavigate, onGoBack , onDeleteItem}) {
     if (pathname === 'allfiles') {
         return (
             <AllFilesContent
@@ -199,6 +199,7 @@ function DemoPageContent({ pathname, filesAndFolders, isLoading, error, currentP
                 currentPath={currentPath}
                 onNavigate={onNavigate}
                 onGoBack={onGoBack}
+                onDeleteItem={onDeleteItem}
             />
         );
     }
@@ -257,6 +258,7 @@ DemoPageContent.propTypes = {
     currentPath: PropTypes.string.isRequired,
     onNavigate: PropTypes.func.isRequired,
     onGoBack: PropTypes.func.isRequired,
+    onDeleteItem: PropTypes.func,
 };
 
 
@@ -513,8 +515,11 @@ function DashboardLayoutBranding(props) {
     }, []);
 
     const handleDeleteItem = React.useCallback(async (itemPath, itemName) => {
-        if (!window.confirm(`Are you sure you want to move "${itemName}" to Trash?`)) {
-            return; 
+
+        const confirmFunction = demoWindow && demoWindow.confirm ? demoWindow.confirm : window.confirm;
+
+        if (!confirmFunction(`Are you sure you want to move "${itemName}" to Trash?`)) { // <-- THIS IS THE CORRECTED LINE
+            return;
         }
 
         try {
