@@ -149,7 +149,8 @@ function AllFilesContent({ filesAndFolders, isLoading, error, currentPath, onNav
                         <ListItem
                             key={item.path} 
                             sx={{ borderBottom: '1px solid #eee' }}
-                            {...(item.type === 'folder' && { button: true })}
+                            // Fix for 'button' prop warning: Directly pass the boolean
+                            button={item.type === 'folder'} 
                             onClick={item.type === 'folder' ? () => onNavigate(item.path) : undefined}
                             secondaryAction={
                                 <IconButton edge="end" aria-label="delete" onClick={(e) => {
@@ -199,7 +200,7 @@ function DemoPageContent({ pathname, filesAndFolders, isLoading, error, currentP
                 currentPath={currentPath}
                 onNavigate={onNavigate}
                 onGoBack={onGoBack}
-                onDeleteItem={onDeleteItem}
+                onDeleteItem={onDeleteItem} 
             />
         );
     }
@@ -258,7 +259,7 @@ DemoPageContent.propTypes = {
     currentPath: PropTypes.string.isRequired,
     onNavigate: PropTypes.func.isRequired,
     onGoBack: PropTypes.func.isRequired,
-    onDeleteItem: PropTypes.func,
+    onDeleteItem: PropTypes.func, // onDeleteItem is optional for non-allfiles segments
 };
 
 
@@ -479,7 +480,7 @@ function DashboardLayoutBranding(props) {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch('http://localhost:5000/api/shared-files'); // Added fetch for shared
+            const response = await fetch('http://localhost:5000/api/shared-files'); 
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
@@ -515,14 +516,20 @@ function DashboardLayoutBranding(props) {
     }, []);
 
     const handleDeleteItem = React.useCallback(async (itemPath, itemName) => {
-
-        const confirmResult = (demoWindow && demoWindow.confirm ? demoWindow.confirm : window.confirm)(
-            `Are you sure you want to move "${itemName}" to Trash?`
-        );
-
-        if (!confirmResult) {
-            return; 
+        // --- CRITICAL FIX FOR CONFIRM/ALERT (Ensures window.confirm/alert are called safely) ---
+        let confirmed = true; 
+        if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+            confirmed = window.confirm(`Are you sure you want to move "${itemName}" to Trash?`);
+        } else {
+            console.warn('Warning: window.confirm is not available. Skipping user confirmation.');
+            // In a production app, you might want to prevent deletion or use a custom dialog here.
+            // For now, it proceeds without user confirmation if window.confirm is missing.
         }
+
+        if (!confirmed) {
+            return; // User cancelled or confirmation wasn't available
+        }
+        // --- END CRITICAL FIX ---
 
         try {
             const response = await fetch('http://localhost:5000/api/move-to-trash', {
@@ -539,13 +546,23 @@ function DashboardLayoutBranding(props) {
             }
 
             console.log(`"${itemName}" moved to Trash successfully.`);
-            (demoWindow && demoWindow.alert ? demoWindow.alert : alert)(`"${itemName}" moved to Trash successfully.`);
+            // Safely use window.alert as well
+            if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                window.alert(`"${itemName}" moved to Trash successfully.`);
+            } else {
+                console.log(`(Alert: "${itemName}" moved to Trash successfully.)`);
+            }
+            
             fetchAllFilesAndFolders(currentPath); 
         } catch (error) {
             console.error('Error moving item to trash:', error);
-            (demoWindow && demoWindow.alert ? demoWindow.alert : alert)(`Failed to move "${itemName}" to trash: ${error.message}`);
+            if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                window.alert(`Failed to move "${itemName}" to trash: ${error.message}`);
+            } else {
+                console.error(`(Alert: Failed to move "${itemName}" to trash: ${error.message})`);
+            }
         }
-    }, [currentPath, fetchAllFilesAndFolders , demoWindow]); 
+    }, [currentPath, fetchAllFilesAndFolders]); // Removed demoWindow from dependencies as we use direct window access
 
     React.useEffect(() => {
         console.log('DashboardLayoutBranding useEffect: currentSegment =', currentSegment);
