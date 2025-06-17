@@ -516,10 +516,12 @@ function DashboardLayoutBranding(props) {
 
     const handleDeleteItem = React.useCallback(async (itemPath, itemName) => {
 
-        const confirmFunction = demoWindow && demoWindow.confirm ? demoWindow.confirm : window.confirm;
+        const confirmResult = (demoWindow && demoWindow.confirm ? demoWindow.confirm : window.confirm)(
+            `Are you sure you want to move "${itemName}" to Trash?`
+        );
 
-        if (!confirmFunction(`Are you sure you want to move "${itemName}" to Trash?`)) { // <-- THIS IS THE CORRECTED LINE
-            return;
+        if (!confirmResult) {
+            return; 
         }
 
         try {
@@ -537,13 +539,13 @@ function DashboardLayoutBranding(props) {
             }
 
             console.log(`"${itemName}" moved to Trash successfully.`);
-            alert(`"${itemName}" moved to Trash successfully.`);
+            (demoWindow && demoWindow.alert ? demoWindow.alert : alert)(`"${itemName}" moved to Trash successfully.`);
             fetchAllFilesAndFolders(currentPath); 
         } catch (error) {
             console.error('Error moving item to trash:', error);
-            alert(`Failed to move "${itemName}" to trash: ${error.message}`);
+            (demoWindow && demoWindow.alert ? demoWindow.alert : alert)(`Failed to move "${itemName}" to trash: ${error.message}`);
         }
-    }, [currentPath, fetchAllFilesAndFolders]); 
+    }, [currentPath, fetchAllFilesAndFolders , demoWindow]); 
 
     React.useEffect(() => {
         console.log('DashboardLayoutBranding useEffect: currentSegment =', currentSegment);
